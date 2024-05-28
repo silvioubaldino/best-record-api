@@ -17,10 +17,7 @@ func NewRecorderController() *RecorderController {
 }
 
 func (c *RecorderController) StartRecording(ctx *gin.Context) {
-	input := ctx.Query("input")
-	output := ctx.Query("output")
-
-	if err := c.service.StartRecording(input, output); err != nil {
+	if err := c.service.StartRecording(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -37,20 +34,9 @@ func (c *RecorderController) StopRecording(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Recording stopped"})
 }
 
-func (c *RecorderController) GetStatus(ctx *gin.Context) {
-	status, err := c.service.GetStatus()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"status": status})
-}
-
 func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 	var req struct {
-		Output   string `json:"output"`
-		Duration int    `json:"duration"`
+		Duration int `json:"duration"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -58,7 +44,7 @@ func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 		return
 	}
 
-	path, err := c.service.ClipRecording(req.Output, req.Duration)
+	path, err := c.service.ClipRecording(req.Duration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

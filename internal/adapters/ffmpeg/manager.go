@@ -1,43 +1,44 @@
 package ffmpeg
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"time"
-
-	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 )
 
+type VideoConfig struct {
+	Fps         string
+	BitRate     int
+	MaxDuration int
+}
+
 type FFmpegManager struct {
-	currentRecording *domain.Recording
-	mutex            sync.Mutex
-	ffmpegCmd        *exec.Cmd
+	circularBuffer *CircularBuffer
+	mutex          sync.Mutex
+	ffmpegCmd      *exec.Cmd
+	videoConfig    VideoConfig
 }
 
-func NewFFmpegManager() *FFmpegManager {
-	return &FFmpegManager{}
+func NewFFmpegManager(config VideoConfig) *FFmpegManager {
+	return &FFmpegManager{
+		circularBuffer: NewCircularBuffer(config.BitRate, config.MaxDuration),
+		videoConfig:    config,
+	}
 }
 
-func (m *FFmpegManager) StartRecording(input, output string) error {
+func (m *FFmpegManager) StartRecording() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if m.currentRecording != nil && m.currentRecording.Status == "recording" {
-		return errors.New("already recording")
-	}
-
-	m.ffmpegCmd = exec.Command("ffmpeg", "-i", input, "-c", "copy", output)
+	m.ffmpegCmd = exec.Command("ffmpeg", "-f", "avfoundation", "-framerate", m.videoConfig.Fps, "-i", "0",
+		"-b:v", strconv.Itoa(m.videoConfig.BitRate)+"k", "-f", "mpegts", "pipe:1")
+	m.ffmpegCmd.Stdout = m.circularBuffer
+	m.ffmpegCmd.Stderr = os.Stderr
 	if err := m.ffmpegCmd.Start(); err != nil {
 		return err
-	}
-
-	m.currentRecording = &domain.Recording{
-		StartTime: time.Now(),
-		Status:    "recording",
-		FilePath:  output,
 	}
 
 	return nil
@@ -47,44 +48,51 @@ func (m *FFmpegManager) StopRecording() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if m.currentRecording == nil || m.currentRecording.Status != "recording" {
-		return errors.New("not currently recording")
-	}
-
 	if err := m.ffmpegCmd.Process.Signal(os.Interrupt); err != nil {
 		return err
 	}
 
-	m.currentRecording.EndTime = time.Now()
-	m.currentRecording.Status = "stopped"
-
 	return nil
 }
 
-func (m *FFmpegManager) GetStatus() (domain.Recording, error) {
+func (m *FFmpegManager) ClipRecording(seconds int) (string, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if m.currentRecording == nil {
-		return domain.Recording{}, errors.New("no current recording")
+	// Read the last 'seconds' minutes from the circular buffer
+	data, err := m.circularBuffer.ReadLastSeconds(seconds)
+	if err != nil {
+		return "", err
 	}
 
-	return *m.currentRecording, nil
+	return extractClip(data)
+
 }
 
-func (m *FFmpegManager) ClipRecording(output string, duration int) (string, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	if m.currentRecording == nil || m.currentRecording.Status != "stopped" {
-		return "", errors.New("no recording to clip")
-	}
-
-	cmd := exec.Command("ffmpeg", "-sseof", fmt.Sprintf("-%d", duration), "-i", m.currentRecording.FilePath, "-c", "copy", output)
-	outputBytes, err := cmd.CombinedOutput()
+func extractClip(data []byte) (string, error) {
+	// Write the data to a temporary TS file
+	tempFile := fmt.Sprintf("temp_%d.ts", time.Now().Unix())
+	file, err := os.Create(tempFile)
 	if err != nil {
-		return "", fmt.Errorf("ffmpeg error: %s", string(outputBytes))
+		return "", err
+	}
+	defer file.Close()
+
+	if _, err := file.Write(data); err != nil {
+		return "", err
 	}
 
+	// Convert the TS file to MP4
+	output := fmt.Sprintf("clip_%d.mp4", time.Now().Unix())
+	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c", "copy", output)
+	ffmpegCmd.Stderr = os.Stderr
+	if err := ffmpegCmd.Run(); err != nil {
+		return "", err
+	}
+
+	// Delete the temporary TS file
+	if err := os.Remove(tempFile); err != nil {
+		return "", err
+	}
 	return output, nil
 }

@@ -2,7 +2,6 @@ package services
 
 import (
 	"github.com/silvioubaldino/best-record-api/internal/adapters/ffmpeg"
-	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 )
 
 type RecorderService struct {
@@ -11,22 +10,23 @@ type RecorderService struct {
 
 func NewRecorderService() *RecorderService {
 	return &RecorderService{
-		manager: ffmpeg.NewFFmpegManager(),
+		manager: ffmpeg.NewFFmpegManager(ffmpeg.VideoConfig{
+			Fps:         "30",
+			BitRate:     8000,
+			MaxDuration: 30 * 60,
+		}),
 	}
 }
 
-func (s *RecorderService) StartRecording(input, output string) error {
-	return s.manager.StartRecording(input, output)
+func (s *RecorderService) StartRecording() error {
+
+	return s.manager.StartRecording()
 }
 
 func (s *RecorderService) StopRecording() error {
 	return s.manager.StopRecording()
 }
 
-func (s *RecorderService) GetStatus() (domain.Recording, error) {
-	return s.manager.GetStatus()
-}
-
-func (s *RecorderService) ClipRecording(output string, duration int) (string, error) {
-	return s.manager.ClipRecording(output, duration)
+func (s *RecorderService) ClipRecording(duration int) (string, error) {
+	return s.manager.ClipRecording(duration)
 }

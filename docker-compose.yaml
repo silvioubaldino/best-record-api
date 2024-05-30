@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./logs/gin.log:/logs/gin.log
+      - ./config.json:/app/config.json
+    ports:
+      - "8080:8080"
+    environment:
+      - environment=development
+    networks:
+      - best-record
+
+  react-app:
+    container_name: react-app
+    image: sineto/best-record-front:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_IP_NETWORK=localhost # Change to server network local IP '192.168.x.x'
+      - REACT_APP_DURATION=300
+    networks:
+      - best-record
+    depends_on:
+      - api
+
+networks:
+  best-record:
+    name: best-record
+    driver: bridge

@@ -75,3 +75,13 @@ func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"clipped_video_path": path})
 }
+
+func (c RecorderController) GetAvailableCameras(ctx *gin.Context) {
+	camList, err := c.service.GetAvaiableCam()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"cameras": camList})
+}

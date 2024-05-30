@@ -11,4 +11,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/record", recorderController.StartRecording)
 	r.POST("/stop", recorderController.StopRecording)
 	r.POST("/clip", recorderController.ClipRecording)
+	r.GET("/get-cameras", recorderController.GetAvailableCameras)
 }

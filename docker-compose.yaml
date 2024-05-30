@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./videos:/app/videos
+    ports:
+      - 8080:8080
+    devices:
+      - /dev/video0:/dev/video0
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - app

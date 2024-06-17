@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/gin-gonic/gin"
 	"github.com/silvioubaldino/best-record-api/internal/core/services"
 )
@@ -17,7 +19,14 @@ func NewRecorderController() *RecorderController {
 }
 
 func (c *RecorderController) StartRecording(ctx *gin.Context) {
-	if err := c.service.StartRecording(); err != nil {
+	idString := ctx.Query("id")
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := c.service.StartGroupRecording(id); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -26,7 +35,14 @@ func (c *RecorderController) StartRecording(ctx *gin.Context) {
 }
 
 func (c *RecorderController) StopRecording(ctx *gin.Context) {
-	if err := c.service.StopRecording(); err != nil {
+	idString := ctx.Query("id")
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := c.service.StopRecording(id); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -35,6 +51,13 @@ func (c *RecorderController) StopRecording(ctx *gin.Context) {
 }
 
 func (c *RecorderController) ClipRecording(ctx *gin.Context) {
+	idString := ctx.Query("id")
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	var req struct {
 		Duration int `json:"duration"`
 	}
@@ -44,7 +67,7 @@ func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 		return
 	}
 
-	path, err := c.service.ClipRecording(req.Duration)
+	path, err := c.service.ClipRecording(id, req.Duration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

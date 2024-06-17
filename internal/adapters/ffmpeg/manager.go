@@ -7,6 +7,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/silvioubaldino/best-record-api/internal/core/domain"
+	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 )
 
 type VideoConfig struct {
@@ -15,62 +19,120 @@ type VideoConfig struct {
 	MaxDuration int
 }
 
-type FFmpegManager struct {
+type ffmpegStream struct {
+	id         uuid.UUID
+	cameraName string
+	VideoConfig
 	circularBuffer *CircularBuffer
 	mutex          sync.Mutex
-	ffmpegCmd      *exec.Cmd
-	videoConfig    VideoConfig
+	cmd            *exec.Cmd
 }
 
-func NewFFmpegManager(config VideoConfig) *FFmpegManager {
-	return &FFmpegManager{
-		circularBuffer: NewCircularBuffer(config.BitRate, config.MaxDuration),
-		videoConfig:    config,
+type FFmpegManager struct {
+	streams []*ffmpegStream
+}
+
+func NewFFmpegManager() ports.StreamManager {
+	return &FFmpegManager{}
+}
+
+func toffmpegStream(stream domain.Stream) *ffmpegStream {
+	buffer := NewCircularBuffer(stream.BitRate, stream.MaxDuration)
+
+	newffmpegStream := &ffmpegStream{
+		id:         stream.ID,
+		cameraName: stream.CameraName,
+		VideoConfig: VideoConfig{
+			Fps:         stream.Fps,
+			BitRate:     stream.BitRate,
+			MaxDuration: stream.MaxDuration,
+		},
+		circularBuffer: buffer,
 	}
+
+	return newffmpegStream
 }
 
-func (m *FFmpegManager) StartRecording() error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+func (m *FFmpegManager) getStream(id uuid.UUID) (*ffmpegStream, error) {
+	for _, stream := range m.streams {
+		if id == stream.id {
+			return stream, nil
+		}
+	}
+	return nil, fmt.Errorf("incorrect stream ID")
+}
 
-	m.ffmpegCmd = exec.Command("ffmpeg", "-f", "avfoundation", "-framerate", m.videoConfig.Fps, "-i", "0",
-		"-b:v", strconv.Itoa(m.videoConfig.BitRate)+"k", "-f", "mpegts", "pipe:1")
-	m.ffmpegCmd.Stdout = m.circularBuffer
-	m.ffmpegCmd.Stderr = os.Stderr
-	if err := m.ffmpegCmd.Start(); err != nil {
+func (m *FFmpegManager) addStream(stream domain.Stream) (*ffmpegStream, error) {
+	existentStream, _ := m.getStream(stream.ID)
+	if existentStream != nil {
+		return existentStream, nil
+	}
+
+	newffmpegStream := toffmpegStream(stream)
+
+	m.streams = append(m.streams, newffmpegStream)
+	return newffmpegStream, nil
+}
+
+func (m *FFmpegManager) StartRecording(stream domain.Stream) error {
+	newffmpegStream, err := m.addStream(stream)
+	if err != nil {
+		return err
+	}
+
+	newffmpegStream.mutex.Lock()
+	defer newffmpegStream.mutex.Unlock()
+
+	newffmpegStream.cmd = exec.Command("ffmpeg", "-f", "avfoundation", "-framerate", newffmpegStream.Fps, "-i", stream.CameraID,
+		"-b:v", strconv.Itoa(newffmpegStream.BitRate)+"k", "-f", "mpegts", "pipe:1")
+	newffmpegStream.cmd.Stdout = newffmpegStream.circularBuffer
+	newffmpegStream.cmd.Stderr = os.Stderr
+	if err := newffmpegStream.cmd.Start(); err != nil {
+		return err
+	}
+	stream.Status = "recording"
+	fmt.Printf("%s started", stream.CameraName)
+
+	return nil
+}
+
+func (m *FFmpegManager) StopRecording(streamID uuid.UUID) error {
+	newffmpegStream, err := m.getStream(streamID)
+	if err != nil {
+		return err
+	}
+
+	newffmpegStream.mutex.Lock()
+	defer newffmpegStream.mutex.Unlock()
+
+	if err := newffmpegStream.cmd.Process.Signal(os.Interrupt); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *FFmpegManager) StopRecording() error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	if err := m.ffmpegCmd.Process.Signal(os.Interrupt); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *FFmpegManager) ClipRecording(seconds int) (string, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	// Read the last 'seconds' minutes from the circular buffer
-	data, err := m.circularBuffer.ReadLastSeconds(seconds)
+func (m *FFmpegManager) ClipRecording(streamID uuid.UUID, seconds int) (string, error) {
+	newffmpegStream, err := m.getStream(streamID)
 	if err != nil {
 		return "", err
 	}
 
-	return extractClip(data)
+	newffmpegStream.mutex.Lock()
+	defer newffmpegStream.mutex.Unlock()
+
+	// Read the last 'seconds' minutes from the circular buffer
+	data, err := newffmpegStream.circularBuffer.ReadLastSeconds(seconds)
+	if err != nil {
+		return "", err
+	}
+
+	clipName := fmt.Sprintf("clip_%s_%s.mp4", newffmpegStream.cameraName, time.Now().Format(time.DateTime))
+	return extractClip(clipName, data)
 
 }
 
-func extractClip(data []byte) (string, error) {
-	// Write the data to a temporary TS file
+func extractClip(clipName string, data []byte) (string, error) {
 	tempFile := fmt.Sprintf("temp_%d.ts", time.Now().Unix())
 	file, err := os.Create(tempFile)
 	if err != nil {
@@ -82,17 +144,14 @@ func extractClip(data []byte) (string, error) {
 		return "", err
 	}
 
-	// Convert the TS file to MP4
-	output := fmt.Sprintf("clip_%d.mp4", time.Now().Unix())
-	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c", "copy", output)
+	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c", "copy", clipName)
 	ffmpegCmd.Stderr = os.Stderr
 	if err := ffmpegCmd.Run(); err != nil {
 		return "", err
 	}
 
-	// Delete the temporary TS file
 	if err := os.Remove(tempFile); err != nil {
 		return "", err
 	}
-	return output, nil
+	return clipName, nil
 }

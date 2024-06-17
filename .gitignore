@@ -26,3 +26,6 @@ go.work
 *.mkv
 
 .idea/
+
+*.ts
+*.json

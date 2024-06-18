@@ -10,4 +10,5 @@ type StreamManager interface {
 	StartRecording(stream domain.Stream) error
 	StopRecording(streamID uuid.UUID) error
 	ClipRecording(streamID uuid.UUID, seconds int) (string, error)
+	GetAvailableCameras() (map[string]string, error)
 }

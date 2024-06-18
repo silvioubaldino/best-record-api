@@ -1,10 +1,13 @@
 package ffmpeg
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -154,4 +157,43 @@ func extractClip(clipName string, data []byte) (string, error) {
 		return "", err
 	}
 	return clipName, nil
+}
+
+func (m *FFmpegManager) GetAvailableCameras() (map[string]string, error) {
+	cmd := exec.Command("ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", "")
+
+	var out bytes.Buffer
+	cmd.Stderr = &out
+
+	_ = cmd.Run()
+
+	output := out.String()
+
+	videoDevices := parseFFmpegOutput(output, "AVFoundation video devices:")
+
+	return videoDevices, nil
+}
+
+func parseFFmpegOutput(output, section string) map[string]string {
+	lines := strings.Split(output, "\n")
+	var devices = make(map[string]string)
+	var capture bool
+
+	for _, line := range lines {
+		if strings.Contains(line, section) {
+			capture = true
+			continue
+		}
+		if capture {
+			if strings.Contains(line, "AVFoundation") && strings.Contains(line, "devices:") {
+				break
+			}
+			re := regexp.MustCompile(`\[(\d+)\] (.+)`)
+			match := re.FindStringSubmatch(line)
+			if len(match) == 3 {
+				devices[match[1]] = match[2]
+			}
+		}
+	}
+	return devices
 }

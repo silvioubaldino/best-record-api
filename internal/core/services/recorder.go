@@ -67,3 +67,7 @@ func (s *RecorderService) ClipRecording(id uuid.UUID, duration int) (string, err
 	}
 	return clipNames, nil
 }
+
+func (s RecorderService) GetAvaiableCam() (map[string]string, error) {
+	return s.manager.GetAvailableCameras()
+}

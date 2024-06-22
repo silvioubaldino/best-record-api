@@ -13,9 +13,12 @@ type RecorderController struct {
 	service *services.RecorderService
 }
 
-func NewRecorderController() *RecorderController {
-	service := services.NewRecorderService()
-	return &RecorderController{service: service}
+func NewRecorderController() (*RecorderController, error) {
+	service, err := services.NewRecorderService()
+	if err != nil {
+		return nil, err
+	}
+	return &RecorderController{service: service}, nil
 }
 
 func (c *RecorderController) StartRecording(ctx *gin.Context) {

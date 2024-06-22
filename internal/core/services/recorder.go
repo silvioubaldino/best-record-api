@@ -15,11 +15,15 @@ type RecorderService struct {
 	rgRepository ports.RecordingGroupsRepository
 }
 
-func NewRecorderService() *RecorderService {
-	return &RecorderService{
-		manager:      ffmpeg.NewFFmpegManager(),
-		rgRepository: repositories.NewTempoRepo(),
+func NewRecorderService() (*RecorderService, error) {
+	manager, err := ffmpeg.GetVideoManager()
+	if err != nil {
+		return nil, err
 	}
+	return &RecorderService{
+		manager:      manager,
+		rgRepository: repositories.NewTempoRepo(),
+	}, nil
 }
 
 func (s *RecorderService) StartGroupRecording(id uuid.UUID) error {
@@ -44,7 +48,6 @@ func (s *RecorderService) StopRecording(id uuid.UUID) error {
 
 	for _, stream := range group.Streams {
 		if err := s.manager.StopRecording(stream.ID); err != nil {
-			fmt.Errorf("%w", err)
 			return err
 		}
 	}

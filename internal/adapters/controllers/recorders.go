@@ -57,7 +57,7 @@ func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 	idString := ctx.Query("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 

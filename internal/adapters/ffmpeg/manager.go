@@ -42,6 +42,9 @@ func GetVideoManager() (ports.StreamManager, error) {
 		return NewMacOSManager(), nil
 	case "linux":
 		return NewLinuxManager(), nil
+	case "windows":
+		return nil, nil
+
 	}
 
 	return nil, fmt.Errorf("unsupported OS: %s", so)

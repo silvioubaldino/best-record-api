@@ -7,6 +7,7 @@ import (
 
 	"github.com/silvioubaldino/best-record-api/internal/adapters/ffmpeg"
 	"github.com/silvioubaldino/best-record-api/internal/adapters/repositories"
+	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 )
 
@@ -24,6 +25,10 @@ func NewRecorderService() (*RecorderService, error) {
 		manager:      manager,
 		rgRepository: repositories.NewTempoRepo(),
 	}, nil
+}
+
+func (s *RecorderService) GetRecordingGroups() ([]domain.RecordingGroup, error) {
+	return s.rgRepository.GetRecordGroups()
 }
 
 func (s *RecorderService) StartGroupRecording(id uuid.UUID) error {

@@ -21,6 +21,16 @@ func NewRecorderController() (*RecorderController, error) {
 	return &RecorderController{service: service}, nil
 }
 
+func (c *RecorderController) GetRecordingGroups(ctx *gin.Context) {
+	groups, err := c.service.GetRecordingGroups()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"recording_groups": groups})
+}
+
 func (c *RecorderController) StartRecording(ctx *gin.Context) {
 	idString := ctx.Query("id")
 	id, err := uuid.Parse(idString)
@@ -79,7 +89,7 @@ func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"clipped_video_path": path})
 }
 
-func (c RecorderController) GetAvailableCameras(ctx *gin.Context) {
+func (c *RecorderController) GetAvailableCameras(ctx *gin.Context) {
 	camList, err := c.service.GetAvaiableCam()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

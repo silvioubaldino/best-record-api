@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"net/http"
-
-	"github.com/google/uuid"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	"github.com/silvioubaldino/best-record-api/internal/core/services"
 )
 
@@ -76,7 +78,14 @@ func (c *RecorderController) ClipRecording(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"clipped_video_path": path})
+	paths := strings.Split(path, ";")
+	filePath := strings.TrimSpace(paths[0])
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "file not found"})
+		return
+	}
+
+	ctx.File(filePath)
 }
 
 func (c RecorderController) GetAvailableCameras(ctx *gin.Context) {

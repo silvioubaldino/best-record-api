@@ -1,7 +1,7 @@
 package services
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -60,15 +60,15 @@ func (s *RecorderService) ClipRecording(id uuid.UUID, duration int) (string, err
 		return "", err
 	}
 
-	var clipNames string
+	var clipNames []string
 	for _, stream := range group.Streams {
 		clip, err := s.manager.ClipRecording(stream.ID, duration)
 		if err != nil {
 			return "", err
 		}
-		clipNames = fmt.Sprintf("%s; %s", clipNames, clip)
+		clipNames = append(clipNames, clip)
 	}
-	return clipNames, nil
+	return strings.Join(clipNames, ";"), nil
 }
 
 func (s RecorderService) GetAvaiableCam() (map[string]string, error) {

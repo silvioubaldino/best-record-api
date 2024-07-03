@@ -5,8 +5,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/silvioubaldino/best-record-api/internal/adapters/ffmpeg"
-	"github.com/silvioubaldino/best-record-api/internal/adapters/repositories"
 	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 )
@@ -16,15 +14,11 @@ type RecorderService struct {
 	rgRepository ports.RecordingGroupsRepository
 }
 
-func NewRecorderService() (*RecorderService, error) {
-	manager, err := ffmpeg.GetVideoManager()
-	if err != nil {
-		return nil, err
-	}
+func NewRecorderService(manager ports.StreamManager, repo ports.RecordingGroupsRepository) *RecorderService {
 	return &RecorderService{
 		manager:      manager,
-		rgRepository: repositories.NewTempoRepo(),
-	}, nil
+		rgRepository: repo,
+	}
 }
 
 func (s *RecorderService) GetRecordingGroups() ([]domain.RecordingGroup, error) {

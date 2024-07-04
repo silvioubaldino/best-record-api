@@ -29,7 +29,7 @@ func (w windowsManager) StartRecording(stream domain.Stream) error {
 	newffmpegStream.mutex.Lock()
 	defer newffmpegStream.mutex.Unlock()
 
-	//TODO review the real cmd commands in ffmpeg for windows
+	//TODO checkar os comandos corretos para ffmpeg no windows
 	newffmpegStream.cmd = exec.Command("ffmpeg", "-f", "avfoundation", "-framerate", newffmpegStream.Fps, "-i", stream.CameraID,
 		"-b:v", strconv.Itoa(newffmpegStream.BitRate)+"k", "-f", "mpegts", "pipe:1")
 	newffmpegStream.cmd.Stdout = newffmpegStream.circularBuffer

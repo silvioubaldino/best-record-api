@@ -8,7 +8,9 @@ import (
 	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -81,8 +83,7 @@ func (w *windowsManager) ClipRecording(streamID uuid.UUID, seconds int) (string,
 }
 
 func (w *windowsManager) GetAvailableCameras() (map[string]string, error) {
-	//TODO ver como pego a lista de cameras disponiveis no windows
-	cmd := exec.Command("ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", "")
+	cmd := exec.Command("ffmpeg", "-list_devices", "true", "-f", "dshow", "-i", "dummy")
 
 	var out bytes.Buffer
 	cmd.Stderr = &out
@@ -91,13 +92,28 @@ func (w *windowsManager) GetAvailableCameras() (map[string]string, error) {
 
 	output := out.String()
 
-	//TODO ver como ficaria essa saída no windows e fazer a função de parse de acordo
-	videoDevices := parseWindowsOutPut(output, "Windows video devices:")
+	videoDevices := parseWindowsOutPut(output)
+
+	fmt.Printf("%s", videoDevices)
 
 	return videoDevices, nil
 }
 
-func parseWindowsOutPut(output, section string) map[string]string {
+func parseWindowsOutPut(output string) map[string]string {
+	lines := strings.Split(output, "\n")
+	devices := make(map[string]string)
 
-	panic(output)
+	var currentDeviceName string
+	re := regexp.MustCompile(`"(.+?)" \(video\)`)
+	reAlt := regexp.MustCompile(`Alternative name "(.+?)"`)
+
+	for _, line := range lines {
+		if match := re.FindStringSubmatch(line); len(match) == 2 {
+			currentDeviceName = match[1]
+		} else if match := reAlt.FindStringSubmatch(line); len(match) == 2 && currentDeviceName != "" {
+			devices[match[1]] = currentDeviceName
+			currentDeviceName = ""
+		}
+	}
+	return devices
 }

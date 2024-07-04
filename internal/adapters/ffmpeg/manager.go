@@ -43,7 +43,7 @@ func GetVideoManager() (ports.StreamManager, error) {
 	case "linux":
 		return NewLinuxManager(), nil
 	case "windows":
-		return nil, nil
+		return NewWindowsManager(), nil
 
 	}
 

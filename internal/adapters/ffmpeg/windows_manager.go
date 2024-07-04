@@ -20,7 +20,7 @@ func NewWindowsManager() ports.StreamManager {
 	return &windowsManager{}
 }
 
-func (w windowsManager) StartRecording(stream domain.Stream) error {
+func (w *windowsManager) StartRecording(stream domain.Stream) error {
 	newffmpegStream, err := w.streams.addStream(stream)
 	if err != nil {
 		return err
@@ -29,8 +29,9 @@ func (w windowsManager) StartRecording(stream domain.Stream) error {
 	newffmpegStream.mutex.Lock()
 	defer newffmpegStream.mutex.Unlock()
 
-	//TODO checkar os comandos corretos para ffmpeg no windows
-	newffmpegStream.cmd = exec.Command("ffmpeg", "-f", "avfoundation", "-framerate", newffmpegStream.Fps, "-i", stream.CameraID,
+	fmt.Printf("%s", stream.ID)
+
+	newffmpegStream.cmd = exec.Command("ffmpeg", "-f", "dshow", "-framerate", newffmpegStream.Fps, "-i", "video="+stream.CameraName,
 		"-b:v", strconv.Itoa(newffmpegStream.BitRate)+"k", "-f", "mpegts", "pipe:1")
 	newffmpegStream.cmd.Stdout = newffmpegStream.circularBuffer
 	newffmpegStream.cmd.Stderr = os.Stderr
@@ -43,7 +44,7 @@ func (w windowsManager) StartRecording(stream domain.Stream) error {
 	return nil
 }
 
-func (w windowsManager) StopRecording(streamID uuid.UUID) error {
+func (w *windowsManager) StopRecording(streamID uuid.UUID) error {
 	newffmpegStream, err := w.streams.getStream(streamID)
 
 	if err != nil {
@@ -53,14 +54,14 @@ func (w windowsManager) StopRecording(streamID uuid.UUID) error {
 	newffmpegStream.mutex.Lock()
 	defer newffmpegStream.mutex.Unlock()
 
-	if err := newffmpegStream.cmd.Process.Signal(os.Interrupt); err != nil {
+	if err := newffmpegStream.cmd.Process.Kill(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (w windowsManager) ClipRecording(streamID uuid.UUID, seconds int) (string, error) {
+func (w *windowsManager) ClipRecording(streamID uuid.UUID, seconds int) (string, error) {
 	newffmpegStream, err := w.streams.getStream(streamID)
 	if err != nil {
 		return "", err
@@ -74,11 +75,12 @@ func (w windowsManager) ClipRecording(streamID uuid.UUID, seconds int) (string, 
 		return "", err
 	}
 
-	clipName := fmt.Sprintf("clip_%s_%s.mp4", newffmpegStream.cameraName, time.Now().Format(time.DateTime))
+	clipName := fmt.Sprintf("clip_%s_%s.mp4", newffmpegStream.cameraName, time.Now().Format("20060102_150405"))
+
 	return extractClip(clipName, data)
 }
 
-func (w windowsManager) GetAvailableCameras() (map[string]string, error) {
+func (w *windowsManager) GetAvailableCameras() (map[string]string, error) {
 	//TODO ver como pego a lista de cameras disponiveis no windows
 	cmd := exec.Command("ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", "")
 

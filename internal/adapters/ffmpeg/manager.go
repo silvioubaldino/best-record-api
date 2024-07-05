@@ -43,7 +43,7 @@ func GetVideoManager() (ports.StreamManager, error) {
 	case "linux":
 		return NewLinuxManager(), nil
 	case "windows":
-		return nil, nil
+		return NewWindowsManager(), nil
 
 	}
 
@@ -100,7 +100,7 @@ func extractClip(clipName string, data []byte) (string, error) {
 		return "", err
 	}
 
-	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c", "copy", clipName)
+	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-c:a", "aac", "-strict", "experimental", clipName)
 	ffmpegCmd.Stderr = os.Stderr
 	if err := ffmpegCmd.Run(); err != nil {
 		return "", err

@@ -94,11 +94,11 @@ func extractClip(clipName string, data []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
 
 	if _, err := file.Write(data); err != nil {
 		return "", err
 	}
+	file.Close()
 
 	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-c:a", "aac", "-strict", "experimental", clipName)
 	ffmpegCmd.Stderr = os.Stderr

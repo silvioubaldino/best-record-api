@@ -7,3 +7,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Open backend to local network [PR#07](https://github.com/silvioubaldino/best-record-api/pull/7)

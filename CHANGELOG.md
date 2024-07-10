@@ -7,4 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Corrected two streams starting for same camera [PR#08](https://github.com/silvioubaldino/best-record-api/pull/8)
+- Open backend to local network [PR#07](https://github.com/silvioubaldino/best-record-api/pull/7)
+- Get local user videos folder path to save a file [PR#10](https://github.com/silvioubaldino/best-record-api/pull/10)
+

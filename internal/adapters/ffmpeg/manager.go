@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -89,7 +90,15 @@ func (m *Streams) addStream(stream domain.Stream) (*ffmpegStream, error) {
 }
 
 func extractClip(clipName string, data []byte) (string, error) {
+	outputPath, err := domain.GetOutputPath()
+	if err != nil {
+		return "", err
+	}
+
+	outputPathFile := filepath.Join(outputPath, clipName)
+
 	tempFile := fmt.Sprintf("temp_%d.ts", time.Now().Unix())
+	fmt.Printf("%s", outputPathFile)
 	file, err := os.Create(tempFile)
 	if err != nil {
 		return "", err
@@ -100,7 +109,7 @@ func extractClip(clipName string, data []byte) (string, error) {
 	}
 	file.Close()
 
-	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-c:a", "aac", "-strict", "experimental", clipName)
+	ffmpegCmd := exec.Command("ffmpeg", "-i", tempFile, "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-c:a", "aac", "-strict", "experimental", outputPathFile)
 	ffmpegCmd.Stderr = os.Stderr
 	if err := ffmpegCmd.Run(); err != nil {
 		return "", err
@@ -109,5 +118,5 @@ func extractClip(clipName string, data []byte) (string, error) {
 	if err := os.Remove(tempFile); err != nil {
 		return "", err
 	}
-	return clipName, nil
+	return outputPathFile, nil
 }

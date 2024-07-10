@@ -80,7 +80,7 @@ func (m *Streams) getStream(id uuid.UUID) (*ffmpegStream, error) {
 func (m *Streams) addStream(stream domain.Stream) (*ffmpegStream, error) {
 	existentStream, _ := m.getStream(stream.ID)
 	if existentStream != nil {
-		return existentStream, nil
+		return &ffmpegStream{}, fmt.Errorf("stream already exists")
 	}
 
 	newffmpegStream := toffmpegStream(stream)

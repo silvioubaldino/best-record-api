@@ -91,29 +91,12 @@ func (m *Streams) addStream(stream domain.Stream) (*ffmpegStream, error) {
 }
 
 func extractClip(clipName string, data []byte) (string, error) {
-	// *** Solução 1 *** -> pegar outputpath porém sem a necessidade de .env
 	currentUser, err := user.Current()
 	if err != nil {
 		fmt.Println("Error getting current user: ", err)
 	}
+
 	outputPathFile := filepath.Join(currentUser.HomeDir, "Videos", clipName)
-
-	// *** Solução 2 *** -> pegar outputpath por meio do .env
-	/* outputPath := ""
-	// tratamento caso não seja possível carregar o .env;
-	// observação: verificar se do jeito que fiz o tratamento do erro
-	err := godotenv.Load(".env")
-	if err != nil {
-		fmt.Println("Error loading .env file: ", err)
-		// deixa vazio para salvar na raíz do projeto caso seja nulo (?)
-		outputPath = ""
-	} else {
-		// pega o path salvo no .env
-		outputPath = os.Getenv("OUTPUT_PATH")
-	}
-
-	outputPathFile := outputPath + clipName
-	*/
 
 	tempFile := fmt.Sprintf("temp_%d.ts", time.Now().Unix())
 	fmt.Printf("%s", outputPathFile)

@@ -9,7 +9,7 @@ import (
 
 var (
 	_defaultOutputPath        = "Videos"
-	_defaultRecordsFolderPath = "Best Records"
+	_defaultRecordsFolderPath = "Best_Records"
 )
 
 type (

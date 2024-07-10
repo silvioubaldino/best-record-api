@@ -8,12 +8,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/sftp"
-
 	"github.com/silvioubaldino/best-record-api/internal/adapters/controllers"
 	"github.com/silvioubaldino/best-record-api/internal/adapters/ffmpeg"
 	"github.com/silvioubaldino/best-record-api/internal/adapters/repositories"
-	"github.com/silvioubaldino/best-record-api/internal/adapters/sshclient"
 	"github.com/silvioubaldino/best-record-api/internal/app"
 	"github.com/silvioubaldino/best-record-api/internal/core/services"
 )
@@ -37,14 +34,7 @@ func main() {
 	repo := repositories.NewTempoRepo()
 	recorderService := services.NewRecorderService(manager, repo)
 
-	sshClient, err := sshclient.NewSSHClient()
-	if err != nil {
-		panic(err)
-	}
-	defer sshClient.Close()
-	sftpClient, err := sftp.NewClient(sshClient)
-	defer sftpClient.Close()
-	recorderController := controllers.NewRecorderController(recorderService, sftpClient)
+	recorderController := controllers.NewRecorderController(recorderService)
 
 	app.SetupRoutes(r, recorderController)
 

@@ -1,30 +1,24 @@
 package controllers
 
 import (
-	"fmt"
-	"io"
+	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 	"net/http"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/pkg/sftp"
-
 	"github.com/silvioubaldino/best-record-api/internal/core/services"
 )
 
 type RecorderController struct {
-	service    *services.RecorderService
-	sftpClient *sftp.Client
+	service *services.RecorderService
 }
 
-func NewRecorderController(service *services.RecorderService, sftp *sftp.Client) *RecorderController {
+func NewRecorderController(service *services.RecorderService) *RecorderController {
 	return &RecorderController{
-		service:    service,
-		sftpClient: sftp,
+		service: service,
 	}
 }
 
@@ -116,23 +110,24 @@ func (r *RecorderController) GetAvailableCameras(c *gin.Context) {
 func (r *RecorderController) ServeClip(c *gin.Context) {
 	fileName := c.Param("filename")
 
-	currentUser, err := user.Current()
+	outputPath, err := domain.GetOutputPath()
 	if err != nil {
-		fmt.Println("Error getting current user: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could`n get home dir"})
+		return
 	}
-	path := filepath.Join(currentUser.HomeDir, "Videos", fileName)
-	remoteFile, err := r.sftpClient.Open(path + fileName)
+
+	path := filepath.Join(outputPath, fileName)
+	remoteFile, err := os.Open(path)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-
 	defer remoteFile.Close()
 
-	_, err = io.Copy(c.Writer, remoteFile)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "clip downloaded"})
+
+	c.FileAttachment(path, fileName)
 }

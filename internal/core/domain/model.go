@@ -2,6 +2,9 @@ package domain
 
 import (
 	"github.com/google/uuid"
+	"os"
+	"os/user"
+	"path/filepath"
 )
 
 type (
@@ -21,3 +24,19 @@ type (
 		Streams []Stream
 	}
 )
+
+func GetOutputPath() (string, error) {
+	currentUser, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	outputPath := filepath.Join(currentUser.HomeDir, "Videos", "Best Records")
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		err := os.MkdirAll(outputPath, 0755) // Permissões rwxr-xr-x
+		if err != nil {
+			return "", err
+		}
+	}
+	return outputPath, nil
+}

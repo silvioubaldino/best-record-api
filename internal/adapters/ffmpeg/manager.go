@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -91,12 +90,12 @@ func (m *Streams) addStream(stream domain.Stream) (*ffmpegStream, error) {
 }
 
 func extractClip(clipName string, data []byte) (string, error) {
-	currentUser, err := user.Current()
+	outputPath, err := domain.GetOutputPath()
 	if err != nil {
-		fmt.Println("Error getting current user: ", err)
+		return "", err
 	}
 
-	outputPathFile := filepath.Join(currentUser.HomeDir, "Videos", clipName)
+	outputPathFile := filepath.Join(outputPath, clipName)
 
 	tempFile := fmt.Sprintf("temp_%d.ts", time.Now().Unix())
 	fmt.Printf("%s", outputPathFile)

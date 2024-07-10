@@ -7,6 +7,11 @@ import (
 	"path/filepath"
 )
 
+var (
+	_defaultOutputPath        = "Videos"
+	_defaultRecordsFolderPath = "Best Records"
+)
+
 type (
 	Stream struct {
 		ID          uuid.UUID
@@ -31,7 +36,7 @@ func GetOutputPath() (string, error) {
 		return "", err
 	}
 
-	outputPath := filepath.Join(currentUser.HomeDir, "Videos", "Best Records")
+	outputPath := filepath.Join(currentUser.HomeDir, _defaultOutputPath, _defaultRecordsFolderPath)
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 		err := os.MkdirAll(outputPath, 0755) // Permissões rwxr-xr-x
 		if err != nil {

@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/silvioubaldino/best-record-api/internal/app"
 	"net"
 	"os"
 	"time"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/silvioubaldino/best-record-api/internal/adapters/controllers"
+	"github.com/silvioubaldino/best-record-api/internal/adapters/ffmpeg"
+	"github.com/silvioubaldino/best-record-api/internal/adapters/repositories"
+	"github.com/silvioubaldino/best-record-api/internal/app"
+	"github.com/silvioubaldino/best-record-api/internal/core/services"
 )
 
 func main() {
@@ -22,10 +27,16 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	err := app.SetupRoutes(r)
+	manager, err := ffmpeg.GetVideoManager()
 	if err != nil {
 		panic(err)
 	}
+	repo := repositories.NewTempoRepo()
+	recorderService := services.NewRecorderService(manager, repo)
+
+	recorderController := controllers.NewRecorderController(recorderService)
+
+	app.SetupRoutes(r, recorderController)
 
 	localIP := getLocalIP()
 	if localIP == "" {
@@ -33,7 +44,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	r.Run(localIP + ":8080")
+	err = r.Run(localIP + ":8080")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func getLocalIP() string {

@@ -10,19 +10,29 @@ import (
 )
 
 type RecorderService struct {
-	manager      ports.StreamManager
-	rgRepository ports.RecordingGroupsRepository
+	streamManager ports.StreamManager
+	rgRepository  ports.RecordingGroupsRepository
 }
 
 func NewRecorderService(manager ports.StreamManager, repo ports.RecordingGroupsRepository) *RecorderService {
 	return &RecorderService{
-		manager:      manager,
-		rgRepository: repo,
+		streamManager: manager,
+		rgRepository:  repo,
 	}
 }
 
 func (s *RecorderService) GetRecordingGroups() ([]domain.RecordingGroup, error) {
-	return s.rgRepository.GetRecordGroups()
+	recGroup, err := s.rgRepository.GetRecordGroups()
+	if err != nil {
+		return nil, err
+	}
+	for i, group := range recGroup {
+		for j, stream := range group.Streams {
+			status, _ := s.streamManager.IsRecording(stream.ID)
+			recGroup[i].Streams[j].IsRecording = status
+		}
+	}
+	return recGroup, nil
 }
 
 func (s *RecorderService) StartGroupRecording(id uuid.UUID) error {
@@ -32,8 +42,8 @@ func (s *RecorderService) StartGroupRecording(id uuid.UUID) error {
 	}
 
 	for _, stream := range recGroup.Streams {
-		if err := s.manager.StartRecording(stream); err != nil {
-			return err //TODO tratar erros para que tente iniciar todas as cameras mesmo que uma de erro
+		if err := s.streamManager.StartRecording(stream); err != nil {
+			return err // TODO tratar erros para que tente iniciar todas as cameras mesmo que uma de erro
 		}
 	}
 	return nil
@@ -46,7 +56,7 @@ func (s *RecorderService) StopRecording(id uuid.UUID) error {
 	}
 
 	for _, stream := range group.Streams {
-		if err := s.manager.StopRecording(stream.ID); err != nil {
+		if err := s.streamManager.StopRecording(stream.ID); err != nil {
 			return err
 		}
 	}
@@ -61,7 +71,7 @@ func (s *RecorderService) ClipRecording(id uuid.UUID, duration int) (string, err
 
 	var clipNames []string
 	for _, stream := range group.Streams {
-		clip, err := s.manager.ClipRecording(stream.ID, duration)
+		clip, err := s.streamManager.ClipRecording(stream.ID, duration)
 		if err != nil {
 			return "", err
 		}
@@ -70,6 +80,6 @@ func (s *RecorderService) ClipRecording(id uuid.UUID, duration int) (string, err
 	return strings.Join(clipNames, ";"), nil
 }
 
-func (s RecorderService) GetAvaiableCam() (map[string]string, error) {
-	return s.manager.GetAvailableCameras()
+func (s *RecorderService) GetAvaiableCam() (map[string]string, error) {
+	return s.streamManager.GetAvailableCameras()
 }

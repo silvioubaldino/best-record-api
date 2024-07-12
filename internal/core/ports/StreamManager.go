@@ -11,4 +11,5 @@ type StreamManager interface {
 	StopRecording(streamID uuid.UUID) error
 	ClipRecording(streamID uuid.UUID, seconds int) (string, error)
 	GetAvailableCameras() (map[string]string, error)
+	IsRecording(streamID uuid.UUID) (bool, error)
 }

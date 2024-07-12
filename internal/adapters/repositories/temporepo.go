@@ -12,8 +12,7 @@ import (
 	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 )
 
-type tempoRepo struct {
-}
+type tempoRepo struct{}
 
 func NewTempoRepo() ports.RecordingGroupsRepository {
 	return tempoRepo{}

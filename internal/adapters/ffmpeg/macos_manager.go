@@ -40,7 +40,7 @@ func (m *macOSManager) StartRecording(stream domain.Stream) error {
 	if err := newffmpegStream.cmd.Start(); err != nil {
 		return err
 	}
-	stream.Status = "recording"
+	newffmpegStream.isRecording = true
 	fmt.Printf("%s started", stream.CameraName)
 
 	return nil
@@ -58,7 +58,7 @@ func (m *macOSManager) StopRecording(streamID uuid.UUID) error {
 	if err := newffmpegStream.cmd.Process.Signal(os.Interrupt); err != nil {
 		return err
 	}
-
+	m.streams.removeStream(streamID)
 	return nil
 }
 
@@ -78,7 +78,6 @@ func (m *macOSManager) ClipRecording(streamID uuid.UUID, seconds int) (string, e
 
 	clipName := fmt.Sprintf("clip_%s_%s.mp4", newffmpegStream.cameraName, time.Now().Format(time.DateTime))
 	return extractClip(clipName, data)
-
 }
 
 func (m *macOSManager) GetAvailableCameras() (map[string]string, error) {
@@ -96,9 +95,17 @@ func (m *macOSManager) GetAvailableCameras() (map[string]string, error) {
 	return videoDevices, nil
 }
 
+func (m *macOSManager) IsRecording(streamID uuid.UUID) (bool, error) {
+	newffmpegStream, err := m.streams.getStream(streamID)
+	if err != nil {
+		return false, err
+	}
+	return newffmpegStream.isRecording, nil
+}
+
 func parseAvFoundationOutput(output, section string) map[string]string {
 	lines := strings.Split(output, "\n")
-	var devices = make(map[string]string)
+	devices := make(map[string]string)
 	var capture bool
 
 	for _, line := range lines {

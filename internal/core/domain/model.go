@@ -1,13 +1,14 @@
 package domain
 
 import (
-	"github.com/google/uuid"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/google/uuid"
 )
 
-var (
+const (
 	_defaultOutputPath        = "Videos"
 	_defaultRecordsFolderPath = "Best_Records"
 )
@@ -17,7 +18,7 @@ type (
 		ID          uuid.UUID
 		CameraID    string
 		CameraName  string
-		Status      string
+		IsRecording bool
 		Fps         string
 		BitRate     int
 		MaxDuration int
@@ -38,7 +39,7 @@ func GetOutputPath() (string, error) {
 
 	outputPath := filepath.Join(currentUser.HomeDir, _defaultOutputPath, _defaultRecordsFolderPath)
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		err := os.MkdirAll(outputPath, 0755) // Permissões rwxr-xr-x
+		err := os.MkdirAll(outputPath, 0o755) // Permissões rwxr-xr-x
 		if err != nil {
 			return "", err
 		}

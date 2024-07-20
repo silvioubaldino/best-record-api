@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
 	"github.com/silvioubaldino/best-record-api/internal/adapters/controllers"
 	"github.com/silvioubaldino/best-record-api/internal/adapters/ffmpeg"
 	"github.com/silvioubaldino/best-record-api/internal/adapters/repositories"
@@ -16,6 +18,18 @@ import (
 )
 
 func main() {
+	if err := os.MkdirAll("logs", 0o755); err != nil {
+		panic(err)
+	}
+
+	f, err := os.OpenFile("logs/gin.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{

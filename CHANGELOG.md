@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Improved error handling [PR#14](https://github.com/silvioubaldino/best-record-api/pull/14)
 - Added log file [PR#13](https://github.com/silvioubaldino/best-record-api/pull/13)
 - Added status validation at GetRecordingGroup [PR#12](https://github.com/silvioubaldino/best-record-api/pull/12)
 - Added new download endpoint [PR#11](https://github.com/silvioubaldino/best-record-api/pull/11)

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,50 +27,56 @@ func NewRecorderController(service *services.RecorderService) *RecorderControlle
 func (r *RecorderController) GetRecordingGroups(c *gin.Context) {
 	groups, err := r.service.GetRecordingGroups()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrGettingRecordingGroup.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"recording_groups": groups})
+	c.JSON(http.StatusOK, groups)
 }
 
 func (r *RecorderController) StartRecording(c *gin.Context) {
 	idString := c.Query("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, ErrInvalidID.Error())
 		return
 	}
 
-	if err := r.service.StartGroupRecording(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err = r.service.StartGroupRecording(id); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrStartingRecording.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Recording started"})
+	c.JSON(http.StatusOK, "Recording started")
 }
 
 func (r *RecorderController) StopRecording(c *gin.Context) {
 	idString := c.Query("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, ErrInvalidID.Error())
 		return
 	}
 
-	if err := r.service.StopRecording(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err = r.service.StopRecording(id); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrStopRecording.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Recording stopped"})
+	c.JSON(http.StatusNoContent, "Recording stopped")
 }
 
 func (r *RecorderController) ClipRecording(c *gin.Context) {
 	idString := c.Query("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, ErrInvalidID.Error())
 		return
 	}
 
@@ -77,21 +84,24 @@ func (r *RecorderController) ClipRecording(c *gin.Context) {
 		Duration int `json:"duration"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err = c.ShouldBindJSON(&req); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, ErrInvalidDuration.Error())
 		return
 	}
 
 	path, err := r.service.ClipRecording(id, req.Duration)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrclipRecording.Error())
 		return
 	}
 
 	paths := strings.Split(path, ";")
 	filePath := strings.TrimSpace(paths[0])
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "file not found"})
+	if _, err = os.Stat(filePath); os.IsNotExist(err) {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrFileNotFound.Error())
 		return
 	}
 
@@ -101,7 +111,8 @@ func (r *RecorderController) ClipRecording(c *gin.Context) {
 func (r *RecorderController) GetAvailableCameras(c *gin.Context) {
 	camList, err := r.service.GetAvaiableCam()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrGettingCameras.Error())
 		return
 	}
 
@@ -113,22 +124,19 @@ func (r *RecorderController) ServeClip(c *gin.Context) {
 
 	outputPath, err := domain.GetOutputPath()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could`n get home dir"})
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, ErrGettingHomeDir.Error())
 		return
 	}
 
 	path := filepath.Join(outputPath, fileName)
 	remoteFile, err := os.Open(path)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		log.Println(err)
+		c.JSON(http.StatusNotFound, ErrFileNotFound.Error())
 		return
 	}
 	defer remoteFile.Close()
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
-		return
-	}
 
 	c.FileAttachment(path, fileName)
 }

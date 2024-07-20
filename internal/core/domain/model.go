@@ -38,8 +38,8 @@ func GetOutputPath() (string, error) {
 	}
 
 	outputPath := filepath.Join(currentUser.HomeDir, _defaultOutputPath, _defaultRecordsFolderPath)
-	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		err := os.MkdirAll(outputPath, 0o755) // Permissões rwxr-xr-x
+	if _, err = os.Stat(outputPath); os.IsNotExist(err) {
+		err = os.MkdirAll(outputPath, 0o755) // Permissões rwxr-xr-x
 		if err != nil {
 			return "", err
 		}

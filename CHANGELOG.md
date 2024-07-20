@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added status validation at GetRecordingGroup [PR#12](https://github.com/silvioubaldino/best-record-api/pull/12)
 - Added new download endpoint [PR#11](https://github.com/silvioubaldino/best-record-api/pull/11)
 - Got local user videos folder path to save a file [PR#10](https://github.com/silvioubaldino/best-record-api/pull/10)
 - Opened backend to local network [PR#07](https://github.com/silvioubaldino/best-record-api/pull/7)

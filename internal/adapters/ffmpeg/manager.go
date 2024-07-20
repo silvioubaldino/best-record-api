@@ -24,16 +24,13 @@ type VideoConfig struct {
 type Streams []*ffmpegStream
 
 type ffmpegStream struct {
-	id         uuid.UUID
-	cameraName string
-	VideoConfig
+	id             uuid.UUID
+	cameraName     string
+	isRecording    bool
 	circularBuffer *CircularBuffer
 	mutex          sync.Mutex
 	cmd            *exec.Cmd
-}
-
-type FFmpegManager struct {
-	streams Streams
+	VideoConfig
 }
 
 func GetVideoManager() (ports.StreamManager, error) {
@@ -41,8 +38,6 @@ func GetVideoManager() (ports.StreamManager, error) {
 	switch so {
 	case "darwin":
 		return NewMacOSManager(), nil
-	case "linux":
-		return NewLinuxManager(), nil
 	case "windows":
 		return NewWindowsManager(), nil
 
@@ -55,8 +50,9 @@ func toffmpegStream(stream domain.Stream) *ffmpegStream {
 	buffer := NewCircularBuffer(stream.BitRate, stream.MaxDuration)
 
 	newffmpegStream := &ffmpegStream{
-		id:         stream.ID,
-		cameraName: stream.CameraName,
+		id:          stream.ID,
+		cameraName:  stream.CameraName,
+		isRecording: stream.IsRecording,
 		VideoConfig: VideoConfig{
 			Fps:         stream.Fps,
 			BitRate:     stream.BitRate,
@@ -87,6 +83,14 @@ func (m *Streams) addStream(stream domain.Stream) (*ffmpegStream, error) {
 
 	*m = append(*m, newffmpegStream)
 	return newffmpegStream, nil
+}
+
+func (m *Streams) removeStream(id uuid.UUID) {
+	for i, stream := range *m {
+		if id == stream.id {
+			*m = append((*m)[:i], (*m)[i+1:]...)
+		}
+	}
 }
 
 func extractClip(clipName string, data []byte) (string, error) {

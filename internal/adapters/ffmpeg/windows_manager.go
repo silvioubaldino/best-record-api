@@ -3,15 +3,17 @@ package ffmpeg
 import (
 	"bytes"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/silvioubaldino/best-record-api/internal/core/domain"
-	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/silvioubaldino/best-record-api/internal/core/domain"
+	"github.com/silvioubaldino/best-record-api/internal/core/ports"
 )
 
 type windowsManager struct {
@@ -40,7 +42,7 @@ func (w *windowsManager) StartRecording(stream domain.Stream) error {
 	if err := newffmpegStream.cmd.Start(); err != nil {
 		return err
 	}
-	stream.Status = "recording"
+	newffmpegStream.isRecording = true
 	fmt.Printf("%s started", stream.CameraName)
 
 	return nil
@@ -48,7 +50,6 @@ func (w *windowsManager) StartRecording(stream domain.Stream) error {
 
 func (w *windowsManager) StopRecording(streamID uuid.UUID) error {
 	newffmpegStream, err := w.streams.getStream(streamID)
-
 	if err != nil {
 		return err
 	}
@@ -59,6 +60,7 @@ func (w *windowsManager) StopRecording(streamID uuid.UUID) error {
 	if err := newffmpegStream.cmd.Process.Kill(); err != nil {
 		return err
 	}
+	w.streams.removeStream(streamID)
 
 	return nil
 }
@@ -97,6 +99,14 @@ func (w *windowsManager) GetAvailableCameras() (map[string]string, error) {
 	fmt.Printf("%s", videoDevices)
 
 	return videoDevices, nil
+}
+
+func (w *windowsManager) IsRecording(streamID uuid.UUID) (bool, error) {
+	newffmpegStream, err := w.streams.getStream(streamID)
+	if err != nil {
+		return false, err
+	}
+	return newffmpegStream.isRecording, nil
 }
 
 func parseWindowsOutPut(output string) map[string]string {

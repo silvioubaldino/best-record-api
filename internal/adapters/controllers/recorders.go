@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -9,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
+	"github.com/silvioubaldino/best-record-api/internal/core/domain"
 	"github.com/silvioubaldino/best-record-api/internal/core/services"
 )
 

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -24,7 +25,7 @@ func NewRecorderService(manager ports.StreamManager, repo ports.RecordingGroupsR
 func (s *RecorderService) GetRecordingGroups() ([]domain.RecordingGroup, error) {
 	recGroup, err := s.rgRepository.GetRecordGroups()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting recording group: %w", err)
 	}
 	for i, group := range recGroup {
 		for j, stream := range group.Streams {
@@ -38,26 +39,26 @@ func (s *RecorderService) GetRecordingGroups() ([]domain.RecordingGroup, error) 
 func (s *RecorderService) StartGroupRecording(id uuid.UUID) error {
 	recGroup, err := s.rgRepository.GetRecordGroup(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting recording group: %w", err)
 	}
 
 	for _, stream := range recGroup.Streams {
-		if err := s.streamManager.StartRecording(stream); err != nil {
-			return err // TODO tratar erros para que tente iniciar todas as cameras mesmo que uma de erro
+		if err = s.streamManager.StartRecording(stream); err != nil {
+			return fmt.Errorf("error starting record for camera %s: %w", stream.CameraName, err) // TODO tratar erros para que tente iniciar todas as cameras mesmo que uma de erro
 		}
 	}
 	return nil
 }
 
 func (s *RecorderService) StopRecording(id uuid.UUID) error {
-	group, err := s.rgRepository.GetRecordGroup(id)
+	recGroup, err := s.rgRepository.GetRecordGroup(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting recording group: %w", err)
 	}
 
-	for _, stream := range group.Streams {
-		if err := s.streamManager.StopRecording(stream.ID); err != nil {
-			return err
+	for _, stream := range recGroup.Streams {
+		if err = s.streamManager.StopRecording(stream.ID); err != nil {
+			return fmt.Errorf("error stopping record for camera %s: %w", stream.CameraName, err)
 		}
 	}
 	return nil
@@ -66,7 +67,7 @@ func (s *RecorderService) StopRecording(id uuid.UUID) error {
 func (s *RecorderService) ClipRecording(id uuid.UUID, duration int) (string, error) {
 	group, err := s.rgRepository.GetRecordGroup(id)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting recording group: %w", err)
 	}
 
 	var clipNames []string

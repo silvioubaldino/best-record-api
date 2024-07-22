@@ -29,7 +29,7 @@ func (t tempoRepo) GetRecordGroups() ([]domain.RecordingGroup, error) {
 func (t tempoRepo) GetRecordGroup(id uuid.UUID) (domain.RecordingGroup, error) {
 	groups, err := t.GetRecordGroups()
 	if err != nil {
-		return domain.RecordingGroup{}, nil
+		return domain.RecordingGroup{}, err
 	}
 	for _, group := range groups {
 		if group.ID == id {

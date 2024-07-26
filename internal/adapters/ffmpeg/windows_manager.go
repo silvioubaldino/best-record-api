@@ -35,7 +35,7 @@ func (w *windowsManager) StartRecording(stream domain.Stream) error {
 
 	fmt.Printf("%s", stream.ID)
 
-	newffmpegStream.cmd = exec.Command("ffmpeg", "-f", "dshow", "-framerate", newffmpegStream.Fps, "-i", "video="+stream.CameraName,
+	newffmpegStream.cmd = exec.Command("ffmpeg", "-i", stream.CameraName,
 		"-b:v", strconv.Itoa(newffmpegStream.BitRate)+"k", "-f", "mpegts", "pipe:1")
 	newffmpegStream.cmd.Stdout = newffmpegStream.circularBuffer
 	newffmpegStream.cmd.Stderr = os.Stderr

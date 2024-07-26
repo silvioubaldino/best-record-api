@@ -79,7 +79,7 @@ func (w *windowsManager) ClipRecording(streamID uuid.UUID, seconds int) (string,
 		return "", err
 	}
 
-	clipName := fmt.Sprintf("clip_%s_%s.mp4", newffmpegStream.cameraName, time.Now().Format("20060102_150405"))
+	clipName := fmt.Sprintf("clip_%s_%s.mp4", newffmpegStream.id, time.Now().Format("20060102_150405"))
 
 	return extractClip(clipName, data)
 }
